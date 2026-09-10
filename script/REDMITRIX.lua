@@ -29,10 +29,16 @@ local Config = {
 -- GUI
 --==================================================
 
+local OldGui = PlayerGui:FindFirstChild("REDMITRIX")
+if OldGui then
+	OldGui:Destroy()
+end
+
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "REDMITRIX"
 Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = true
+Gui.IgnoreGuiInset = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
 
 --==================================================
@@ -65,34 +71,18 @@ Loading.TextSize = 13
 Loading.TextColor3 = Config.Muted
 Loading.Parent = Loading
 
-local BarBack = Instance.new("Frame")
-BarBack.Size = UDim2.fromOffset(260, 4)
-BarBack.Position = UDim2.new(0.5, -130, 0.55, 0)
-BarBack.BackgroundColor3 = Config.Panel
-BarBack.BorderSizePixel = 0
-BarBack.Parent = Loading
+local LoadingMessages = {
+	"LOADING MODULES...",
+	"INITIALIZING SYSTEM...",
+	"READY"
+}
 
-local Bar = Instance.new("Frame")
-Bar.Size = UDim2.new(0, 0, 1, 0)
-Bar.BackgroundColor3 = Config.Accent
-Bar.BorderSizePixel = 0
-Bar.Parent = BarBack
-
-for i = 1, 100 do
-	Bar.Size = UDim2.new(i / 100, 0, 1, 0)
-
-	if i < 30 then
-		LoadingStatus.Text = "LOADING MODULES..."
-	elseif i < 70 then
-		LoadingStatus.Text = "INITIALIZING SYSTEM..."
-	else
-		LoadingStatus.Text = "READY"
-	end
-
-	task.wait(0.008)
+for _, message in ipairs(LoadingMessages) do
+	LoadingStatus.Text = message
+	task.wait(0.12)
 end
 
-task.wait(0.25)
+task.wait(0.15)
 Loading:Destroy()
 
 --==================================================
@@ -101,8 +91,9 @@ Loading:Destroy()
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.fromOffset(520, 330)
-Main.Position = UDim2.new(0.5, -260, 0.5, -165)
+Main.Size = UDim2.new(0.86, 0, 0.62, 0)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.BackgroundColor3 = Config.Background
 Main.BorderSizePixel = 0
 Main.Parent = Gui
@@ -111,11 +102,11 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = Main
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Config.Accent
-MainStroke.Thickness = 1
-MainStroke.Transparency = 0.35
-MainStroke.Parent = Main
+local MainConstraint = Instance.new("UISizeConstraint")
+MainConstraint.MinSize = Vector2.new(300, 240)
+MainConstraint.MaxSize = Vector2.new(620, 420)
+MainConstraint.Parent = Main
+
 
 --==================================================
 -- TOP BAR
@@ -332,120 +323,24 @@ local function ShowPlayer()
 end
 
 --==================================================
--- VISUAL / GRAPHICS
+-- VISUAL
 --==================================================
 
-local Lighting = game:GetService("Lighting")
-local GraphicsMode = "Classic"
-local FPSLabel
-local FPSConnection
-
-local GraphicsPresets = {
-    Classic = {Technology = Enum.Technology.Compatibility, GlobalShadows = false, Brightness = 2},
-    ClassicPlus = {Technology = Enum.Technology.ShadowMap, GlobalShadows = true, Brightness = 2},
-    Modern = {Technology = Enum.Technology.Future, GlobalShadows = true, Brightness = 2},
-    Low = {Technology = Enum.Technology.Compatibility, GlobalShadows = false, Brightness = 1.5}
-}
-
-local function ApplyGraphics(mode)
-    local preset = GraphicsPresets[mode]
-    if not preset then return end
-    GraphicsMode = mode
-    pcall(function() Lighting.Technology = preset.Technology end)
-    Lighting.GlobalShadows = preset.GlobalShadows
-    Lighting.Brightness = preset.Brightness
-    for _, object in ipairs(workspace:GetDescendants()) do
-        if object:IsA("ParticleEmitter") or object:IsA("Trail") or object:IsA("Beam") then
-            object.Enabled = mode ~= "Low"
-        end
-    end
-end
-
-local function ShowFPS(enabled)
-    if FPSConnection then FPSConnection:Disconnect(); FPSConnection = nil end
-    if FPSLabel then FPSLabel:Destroy(); FPSLabel = nil end
-    if not enabled then return end
-
-    FPSLabel = Instance.new("TextLabel")
-    FPSLabel.Size = UDim2.fromOffset(100, 30)
-    FPSLabel.Position = UDim2.new(1, -110, 0, 12)
-    FPSLabel.BackgroundColor3 = Config.Background
-    FPSLabel.BorderSizePixel = 0
-    FPSLabel.Font = Enum.Font.GothamBold
-    FPSLabel.TextSize = 13
-    FPSLabel.TextColor3 = Config.Accent
-    FPSLabel.Text = "FPS: --"
-    FPSLabel.Parent = Gui
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = FPSLabel
-
-    local last, frames = os.clock(), 0
-    FPSConnection = RunService.RenderStepped:Connect(function()
-        frames += 1
-        local now = os.clock()
-        if now - last >= 0.5 then
-            FPSLabel.Text = "FPS: " .. math.floor(frames / (now-last) + 0.5)
-            frames, last = 0, now
-        end
-    end)
-end
-
 local function ShowVisual()
-    ClearContent()
-    Header("VISUAL SYSTEM")
+	ClearContent()
+	Header("VISUAL SYSTEM")
 
-    Toggle("SHOW FPS", 55, function(enabled)
-        ShowFPS(enabled)
-    end)
+	Toggle("SHOW FPS", 55, function(enabled)
+		print("SHOW FPS:", enabled)
+	end)
 
-    local Label = Instance.new("TextLabel")
-    Label.BackgroundTransparency = 1
-    Label.Position = UDim2.fromOffset(15, 108)
-    Label.Size = UDim2.new(1, -30, 0, 22)
-    Label.Font = Enum.Font.GothamBold
-    Label.Text = "GRAPHICS  //  " .. GraphicsMode
-    Label.TextSize = 12
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextColor3 = Config.Accent
-    Label.Parent = Content
+	Toggle("GRAPHICS", 108, function(enabled)
+		print("GRAPHICS:", enabled)
+	end)
 
-    local modes = {
-        {"Classic", 135},
-        {"ClassicPlus", 177},
-        {"Modern", 219},
-        {"Low", 261}
-    }
-
-    for _, data in ipairs(modes) do
-        local mode, y = data[1], data[2]
-        local Button = Instance.new("TextButton")
-        Button.Position = UDim2.fromOffset(15, y)
-        Button.Size = UDim2.new(1, -30, 0, 36)
-        Button.BackgroundColor3 = Config.Background
-        Button.BorderSizePixel = 0
-        Button.Font = Enum.Font.GothamBold
-        Button.Text = mode
-        Button.TextSize = 11
-        Button.TextColor3 = mode == GraphicsMode and Config.Accent or Config.Text
-        Button.AutoButtonColor = false
-        Button.Parent = Content
-
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 6)
-        Corner.Parent = Button
-
-        Button.MouseButton1Click:Connect(function()
-            ApplyGraphics(mode)
-            Label.Text = "GRAPHICS  //  " .. GraphicsMode
-            for _, child in ipairs(Content:GetChildren()) do
-                if child:IsA("TextButton") and GraphicsPresets[child.Text] then
-                    child.TextColor3 = child.Text == GraphicsMode and Config.Accent or Config.Text
-                end
-            end
-        end)
-    end
+	Toggle("FIX CRACK", 161, function(enabled)
+		print("FIX CRACK:", enabled)
+	end)
 end
 
 --==================================================
@@ -549,7 +444,7 @@ local OpenButton = Instance.new("TextButton")
 
 OpenButton.Size = UDim2.fromOffset(48, 48)
 OpenButton.AnchorPoint = Vector2.new(1, 0.5)
-OpenButton.Position = UDim2.new(1, -18, 0.5, 0)
+OpenButton.Position = UDim2.new(1, -18, 0.35, 0)
 
 OpenButton.BackgroundColor3 = Config.Background
 OpenButton.BorderSizePixel = 0
