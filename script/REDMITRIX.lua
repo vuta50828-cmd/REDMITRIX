@@ -332,24 +332,120 @@ local function ShowPlayer()
 end
 
 --==================================================
--- VISUAL
+-- VISUAL / GRAPHICS
 --==================================================
 
+local Lighting = game:GetService("Lighting")
+local GraphicsMode = "Classic"
+local FPSLabel
+local FPSConnection
+
+local GraphicsPresets = {
+    Classic = {Technology = Enum.Technology.Compatibility, GlobalShadows = false, Brightness = 2},
+    ClassicPlus = {Technology = Enum.Technology.ShadowMap, GlobalShadows = true, Brightness = 2},
+    Modern = {Technology = Enum.Technology.Future, GlobalShadows = true, Brightness = 2},
+    Low = {Technology = Enum.Technology.Compatibility, GlobalShadows = false, Brightness = 1.5}
+}
+
+local function ApplyGraphics(mode)
+    local preset = GraphicsPresets[mode]
+    if not preset then return end
+    GraphicsMode = mode
+    pcall(function() Lighting.Technology = preset.Technology end)
+    Lighting.GlobalShadows = preset.GlobalShadows
+    Lighting.Brightness = preset.Brightness
+    for _, object in ipairs(workspace:GetDescendants()) do
+        if object:IsA("ParticleEmitter") or object:IsA("Trail") or object:IsA("Beam") then
+            object.Enabled = mode ~= "Low"
+        end
+    end
+end
+
+local function ShowFPS(enabled)
+    if FPSConnection then FPSConnection:Disconnect(); FPSConnection = nil end
+    if FPSLabel then FPSLabel:Destroy(); FPSLabel = nil end
+    if not enabled then return end
+
+    FPSLabel = Instance.new("TextLabel")
+    FPSLabel.Size = UDim2.fromOffset(100, 30)
+    FPSLabel.Position = UDim2.new(1, -110, 0, 12)
+    FPSLabel.BackgroundColor3 = Config.Background
+    FPSLabel.BorderSizePixel = 0
+    FPSLabel.Font = Enum.Font.GothamBold
+    FPSLabel.TextSize = 13
+    FPSLabel.TextColor3 = Config.Accent
+    FPSLabel.Text = "FPS: --"
+    FPSLabel.Parent = Gui
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = FPSLabel
+
+    local last, frames = os.clock(), 0
+    FPSConnection = RunService.RenderStepped:Connect(function()
+        frames += 1
+        local now = os.clock()
+        if now - last >= 0.5 then
+            FPSLabel.Text = "FPS: " .. math.floor(frames / (now-last) + 0.5)
+            frames, last = 0, now
+        end
+    end)
+end
+
 local function ShowVisual()
-	ClearContent()
-	Header("VISUAL SYSTEM")
+    ClearContent()
+    Header("VISUAL SYSTEM")
 
-	Toggle("SHOW FPS", 55, function(enabled)
-		print("SHOW FPS:", enabled)
-	end)
+    Toggle("SHOW FPS", 55, function(enabled)
+        ShowFPS(enabled)
+    end)
 
-	Toggle("GRAPHICS", 108, function(enabled)
-		print("GRAPHICS:", enabled)
-	end)
+    local Label = Instance.new("TextLabel")
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.fromOffset(15, 108)
+    Label.Size = UDim2.new(1, -30, 0, 22)
+    Label.Font = Enum.Font.GothamBold
+    Label.Text = "GRAPHICS  //  " .. GraphicsMode
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextColor3 = Config.Accent
+    Label.Parent = Content
 
-	Toggle("FIX CRACK", 161, function(enabled)
-		print("FIX CRACK:", enabled)
-	end)
+    local modes = {
+        {"Classic", 135},
+        {"ClassicPlus", 177},
+        {"Modern", 219},
+        {"Low", 261}
+    }
+
+    for _, data in ipairs(modes) do
+        local mode, y = data[1], data[2]
+        local Button = Instance.new("TextButton")
+        Button.Position = UDim2.fromOffset(15, y)
+        Button.Size = UDim2.new(1, -30, 0, 36)
+        Button.BackgroundColor3 = Config.Background
+        Button.BorderSizePixel = 0
+        Button.Font = Enum.Font.GothamBold
+        Button.Text = mode
+        Button.TextSize = 11
+        Button.TextColor3 = mode == GraphicsMode and Config.Accent or Config.Text
+        Button.AutoButtonColor = false
+        Button.Parent = Content
+
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 6)
+        Corner.Parent = Button
+
+        Button.MouseButton1Click:Connect(function()
+            ApplyGraphics(mode)
+            Label.Text = "GRAPHICS  //  " .. GraphicsMode
+            for _, child in ipairs(Content:GetChildren()) do
+                if child:IsA("TextButton") and GraphicsPresets[child.Text] then
+                    child.TextColor3 = child.Text == GraphicsMode and Config.Accent or Config.Text
+                end
+            end
+        end)
+    end
 end
 
 --==================================================
